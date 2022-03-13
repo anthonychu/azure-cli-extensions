@@ -16,19 +16,19 @@ helps['containerapp create'] = """
     type: command
     short-summary: Create a container app.
     examples:
-    - name: Create a container app and retrieve its fully qualified domain name
+    - name: Create a container app and retrieve its fully qualified domain name.
       text: |
           az containerapp create -n MyContainerapp -g MyResourceGroup \\
               --image myregistry.azurecr.io/my-app:v1.0 --environment MyContainerappEnv \\
               --ingress external --target-port 80 \\
               --query properties.configuration.ingress.fqdn
-    - name: Create a container app with a minimum resource and replica requirements
+    - name: Create a container app with resource requirements and replica count limits.
       text: |
           az containerapp create -n MyContainerapp -g MyResourceGroup \\
               --image myregistry.azurecr.io/my-app:v1.0 --environment MyContainerappEnv \\
               --cpu 0.5 --memory 1.0Gi \\
               --min-replicas 4 --max-replicas 8
-    - name: Create a container app with secrets and environment variables
+    - name: Create a container app with secrets and environment variables.
       text: |
           az containerapp create -n MyContainerapp -g MyResourceGroup \\
               --image myregistry.azurecr.io/my-app:v1.0 --environment MyContainerappEnv \\
@@ -45,11 +45,11 @@ helps['containerapp update'] = """
     type: command
     short-summary: Update a container app. In multiple revisions mode, create a new revision based on the latest revision.
     examples:
-    - name: Update a container app's container image
+    - name: Update a container app's container image.
       text: |
           az containerapp update -n MyContainerapp -g MyResourceGroup \\
               --image myregistry.azurecr.io/my-app:v2.0
-    - name: Update a container app's resource requirements and scale limits
+    - name: Update a container app's resource requirements and scale limits.
       text: |
           az containerapp update -n MyContainerapp -g MyResourceGroup \\
               --cpu 0.5 --memory 1.0Gi \\
@@ -174,11 +174,11 @@ helps['containerapp env create'] = """
     type: command
     short-summary: Create a Container Apps environment.
     examples:
-    - name: Create an environment with an auto-generated Log Analytics workspace
+    - name: Create an environment with an auto-generated Log Analytics workspace.
       text: |
           az containerapp env create -n MyContainerappEnvironment -g MyResourceGroup \\
               --location "Canada Central"
-    - name: Create an environment with an existing Log Analytics workspace
+    - name: Create an environment with an existing Log Analytics workspace.
       text: |
           az containerapp env create -n MyContainerappEnvironment -g MyResourceGroup \\
               --logs-workspace-id myLogsWorkspaceID \\
