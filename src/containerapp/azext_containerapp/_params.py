@@ -106,7 +106,7 @@ def load_arguments(self, _):
     with self.argument_context('containerapp github-action add') as c:
         c.argument('repo_url', help='The GitHub repository to which the workflow file will be added. In the format: https://github.com/<owner>/<repository-name>')
         c.argument('token', help='A Personal Access Token with write access to the specified repository. For more information: https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line')
-        c.argument('branch', options_list=['--branch', '-b'], help='The branch of the GitHub repo. Defaults to "master" if not specified.')
+        c.argument('branch', options_list=['--branch', '-b'], help='The branch of the GitHub repo. Defaults to "main" if not specified.')
         c.argument('login_with_github', help='Interactively log in with Github to retrieve the Personal Access Token')
         c.argument('registry_url', help='The container registry server, e.g. myregistry.azurecr.io')
         c.argument('registry_username', help='The username of the registry. If using Azure Container Registry, we will try to infer the credentials if not supplied')
