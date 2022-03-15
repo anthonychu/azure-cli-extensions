@@ -151,8 +151,8 @@ def load_arguments(self, _):
         c.argument('secret_names', nargs='+', help="A list of secret(s) for the container app. Space-separated secret values names.")
 
     with self.argument_context('containerapp dapr') as c:
-        c.argument('dapr_app_id', help="The dapr app id.")
-        c.argument('dapr_app_port', help="The port of your app.")
-        c.argument('dapr_app_protocol', help="Tells Dapr which protocol your application is using.  Allowed values: grpc, http.")
-        c.argument('dapr_component_name', help="The dapr component name.")
-        c.argument('environment_name', help="The dapr component environment name.")
+        c.argument('dapr_app_id', help="The Dapr app id.")
+        c.argument('dapr_app_port', help="The port Dapr uses to talk to the application.")
+        c.argument('dapr_app_protocol', help="The protocol Dapr uses to talk to the application. Allowed values: grpc, http.")
+        c.argument('dapr_component_name', help="The Dapr component name.")
+        c.argument('environment_name', help="The Container Apps environment name.")
