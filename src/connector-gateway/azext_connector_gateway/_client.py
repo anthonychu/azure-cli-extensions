@@ -8,6 +8,7 @@ from azure.cli.core.util import send_raw_request
 API_VERSION = '2026-05-01-preview'
 PROVIDER = 'Microsoft.Web'
 GATEWAY_TYPE = 'connectorGateways'
+RUNTIME_RESOURCE = 'https://service.flow.microsoft.com/'
 
 
 def _segment(value):
@@ -55,6 +56,31 @@ class ConnectorGatewayClient:
             return response.json()
         except ValueError:
             return None
+
+    def runtime_request(self, method, url, body=None, headers=None, query=None):
+        if query:
+            runtime_query = urlencode({key: _query_value(value) for key, value in query.items() if value is not None})
+            separator = '&' if '?' in url else '?'
+            url = '{}{}{}'.format(url, separator, runtime_query)
+        request_headers = []
+        for key, value in (headers or {}).items():
+            if value is not None:
+                request_headers.append('{}={}'.format(key, value))
+        if body is not None and not any(header.lower().startswith('content-type=') for header in request_headers):
+            request_headers.append('Content-Type=application/json')
+        response = send_raw_request(
+            self.cli_ctx,
+            method.upper(),
+            url,
+            headers=request_headers,
+            body=json.dumps(body) if body is not None else None,
+            resource=RUNTIME_RESOURCE)
+        if not response.content:
+            return {'statusCode': response.status_code}
+        try:
+            return response.json()
+        except ValueError:
+            return {'statusCode': response.status_code, 'content': response.text}
 
 
 def _query_value(value):

@@ -28,6 +28,11 @@ def load_command_table(self, _):
         g.custom_command('delete', 'delete_connection', confirmation=True)
         g.custom_command('list-consent-links', 'list_connection_consent_links')
         g.custom_command('authorize', 'authorize_connection')
+        g.custom_command('invoke', 'invoke_connection')
+
+    with self.command_group('connector-gateway connection operation') as g:
+        g.custom_command('list', 'list_connection_operations')
+        g.custom_command('show', 'show_connection_operation')
 
     with self.command_group('connector-gateway connection access-policy') as g:
         g.custom_command('create', 'create_access_policy', table_transformer=transform_access_policy_table)

@@ -71,6 +71,43 @@ examples:
     text: az connector-gateway connection authorize -g MyResourceGroup --gateway-name MyGateway -n office365-test --no-browser
 """
 
+helps['connector-gateway connection invoke'] = """
+type: command
+short-summary: Invoke a Connector Gateway connection runtime operation.
+long-summary: Invokes the runtime URL for an authenticated connection. Use operation discovery to find Swagger operation IDs and request shapes before invoking mutating operations.
+examples:
+  - name: Send an Office 365 email using the SendEmailV2 operation.
+    text: az connector-gateway connection invoke -g MyResourceGroup --gateway-name MyGateway -n office365-test --operation-id SendEmailV2 --body @mail.json
+  - name: Invoke a runtime path directly.
+    text: az connector-gateway connection invoke -g MyResourceGroup --gateway-name MyGateway -n office365-test --path /v2/Mail --method post --body @mail.json
+  - name: Grant access if runtime invocation fails with an authorization error.
+    text: az connector-gateway connection access-policy create -g MyResourceGroup --gateway-name MyGateway --connection-name office365-test -n signed-in-user --object-id 00000000-0000-0000-0000-000000000000 --tenant-id 00000000-0000-0000-0000-000000000000
+"""
+
+helps['connector-gateway connection operation'] = """
+type: group
+short-summary: List and inspect runtime operations for a Connector Gateway connection.
+"""
+
+helps['connector-gateway connection operation list'] = """
+type: command
+short-summary: List runtime operations for a Connector Gateway connection.
+examples:
+  - name: List Office 365 connection operations.
+    text: az connector-gateway connection operation list -g MyResourceGroup --gateway-name MyGateway -n office365-test -o table
+"""
+
+helps['connector-gateway connection operation show'] = """
+type: command
+short-summary: Show a runtime operation for a Connector Gateway connection.
+long-summary: Includes the operation method, runtime path, parameters, raw body schema, resolved body schema, and a generated request body example when a body schema is available.
+examples:
+  - name: Show the Office 365 send email operation.
+    text: az connector-gateway connection operation show -g MyResourceGroup --gateway-name MyGateway -n office365-test --operation-id SendEmailV2
+  - name: Show a generated request body example.
+    text: az connector-gateway connection operation show -g MyResourceGroup --gateway-name MyGateway -n office365-test --operation-id SendEmailV2 --query requestBodyExample
+"""
+
 helps['connector-gateway connection access-policy'] = """
 type: group
 short-summary: Manage access policies for Connector Gateway connections.

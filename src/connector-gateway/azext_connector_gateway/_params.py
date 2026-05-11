@@ -23,6 +23,7 @@ def load_arguments(self, _):
             'connector-gateway',
             'connector-gateway available-connector',
             'connector-gateway connection',
+            'connector-gateway connection operation',
             'connector-gateway connection access-policy',
             'connector-gateway mcp-server-config',
             'connector-gateway trigger-config']:
@@ -51,6 +52,7 @@ def load_arguments(self, _):
     for scope in [
             'connector-gateway available-connector',
             'connector-gateway connection',
+            'connector-gateway connection operation',
             'connector-gateway connection access-policy',
             'connector-gateway mcp-server-config',
             'connector-gateway trigger-config']:
@@ -68,9 +70,24 @@ def load_arguments(self, _):
             'connector-gateway connection update',
             'connector-gateway connection delete',
             'connector-gateway connection list-consent-links',
-            'connector-gateway connection authorize']:
+            'connector-gateway connection authorize',
+            'connector-gateway connection invoke',
+            'connector-gateway connection operation list',
+            'connector-gateway connection operation show']:
         with self.argument_context(scope) as c:
             c.argument('name', name_type)
+
+    with self.argument_context('connector-gateway connection invoke') as c:
+        c.argument('operation_id', options_list=['--operation-id'], help='Swagger operationId to invoke.')
+        c.argument('path', options_list=['--path'], help='Runtime path to invoke, such as /v2/Mail. Use as an escape hatch when --operation-id is not available.')
+        c.argument('method', options_list=['--method'], help='HTTP method. Defaults to the Swagger operation method, or GET when --path is used.')
+        c.argument('body', body_type)
+        c.argument('parameter', options_list=['--parameter'], nargs='*', help='Operation parameter in NAME=VALUE format. Routed by Swagger location when --operation-id is used; otherwise sent as a query parameter.')
+        c.argument('query_parameter', options_list=['--query-parameter'], nargs='*', help='Query parameter in NAME=VALUE format.')
+        c.argument('header', options_list=['--header'], nargs='*', help='HTTP header in NAME=VALUE format.')
+
+    with self.argument_context('connector-gateway connection operation show') as c:
+        c.argument('operation_id', options_list=['--operation-id'], required=True, help='Swagger operationId to inspect.')
 
     for scope in ['connector-gateway connection create', 'connector-gateway connection update']:
         with self.argument_context(scope) as c:
