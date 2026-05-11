@@ -2,8 +2,8 @@ import webbrowser
 
 from azure.cli.core.azclierror import InvalidArgumentValueError, RequiredArgumentMissingError
 
-from azext_connectorgateway._client import ConnectorGatewayClient
-from azext_connectorgateway._validators import ensure_object, parse_key_value_pairs
+from azext_connector_gateway._client import ConnectorGatewayClient
+from azext_connector_gateway._validators import ensure_object, parse_key_value_pairs
 
 
 def list_gateways(cmd, resource_group_name=None):

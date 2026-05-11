@@ -2,7 +2,7 @@ import unittest
 
 from azure.cli.core.azclierror import RequiredArgumentMissingError
 
-from azext_connectorgateway.custom import (
+from azext_connector_gateway.custom import (
     build_access_policy_body,
     build_connection_body,
     build_consent_body,
@@ -11,7 +11,7 @@ from azext_connectorgateway.custom import (
     build_trigger_config_body,
     extract_first_consent_link,
 )
-from azext_connectorgateway._validators import parse_key_value_pairs
+from azext_connector_gateway._validators import parse_key_value_pairs
 
 
 class ConnectorGatewayUnitTests(unittest.TestCase):
