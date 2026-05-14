@@ -33,16 +33,16 @@ with open('HISTORY.rst', 'r', encoding='utf-8') as f:
     HISTORY = f.read()
 
 setup(
-    name='connector-gateway',
+    name='connector-namespace',
     version=VERSION,
-    description='Microsoft Azure Command-Line Tools Connector Gateway Extension',
+    description='Microsoft Azure Command-Line Tools Connector Namespace Extension',
     author='Microsoft Corporation',
     author_email='azpycli@microsoft.com',
-    url='https://github.com/Azure/azure-cli-extensions/tree/main/src/connector-gateway',
+    url='https://github.com/Azure/azure-cli-extensions/tree/main/src/connector-namespace',
     long_description=README + '\n\n' + HISTORY,
     license='MIT',
     classifiers=CLASSIFIERS,
     packages=find_packages(exclude=['tests']),
     install_requires=DEPENDENCIES,
-    package_data={'azext_connector_gateway': ['azext_metadata.json']},
+    package_data={'azext_connector_namespace': ['azext_metadata.json']},
 )

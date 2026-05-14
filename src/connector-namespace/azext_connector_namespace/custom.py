@@ -4,8 +4,8 @@ from urllib.parse import quote, unquote
 from azure.cli.core.azclierror import (CLIError, ClientRequestError, HTTPError, InvalidArgumentValueError,
                                        RequiredArgumentMissingError)
 
-from azext_connector_gateway._client import ConnectorGatewayClient, RUNTIME_RESOURCE
-from azext_connector_gateway._validators import ensure_object, parse_key_value_pairs
+from azext_connector_namespace._client import ConnectorGatewayClient, RUNTIME_RESOURCE
+from azext_connector_namespace._validators import ensure_object, parse_key_value_pairs
 
 
 def list_gateways(cmd, resource_group_name=None):
@@ -80,11 +80,12 @@ def delete_connection(cmd, resource_group_name, gateway_name, name):
     return _delete_gateway_child(cmd, resource_group_name, gateway_name, 'connections', name)
 
 
-def list_connection_operations(cmd, resource_group_name, gateway_name, name):
+def list_connection_operations(cmd, resource_group_name, gateway_name, name, operation_type=None):
     connection, swagger = _get_connection_and_swagger(cmd, resource_group_name, gateway_name, name)
     return [
         build_operation_summary(path, method, operation, connection)
         for path, method, operation in iter_swagger_operations(swagger)
+        if operation_matches_type(operation, operation_type)
     ]
 
 
@@ -275,6 +276,14 @@ def delete_trigger_config(cmd, resource_group_name, gateway_name, name):
     return _delete_gateway_child(cmd, resource_group_name, gateway_name, 'triggerconfigs', name)
 
 
+def list_trigger_config_runs(cmd, resource_group_name, gateway_name, trigger_config_name, top=None):
+    client = ConnectorGatewayClient(cmd)
+    query = build_trigger_config_runs_query(top)
+    trigger_config_path = client.child_path(resource_group_name, gateway_name, 'triggerConfigs', trigger_config_name)
+    result = client.request('GET', '{}/runs'.format(trigger_config_path), query=query)
+    return (result or {}).get('value', [])
+
+
 def build_gateway_body(location, tags=None, identity_type='SystemAssigned'):
     body = {'location': location, 'properties': {}}
     if tags is not None:
@@ -385,6 +394,14 @@ def build_trigger_config_body(available_connector, connection_name, operation_na
     return {'properties': properties}
 
 
+def build_trigger_config_runs_query(top=None):
+    if top is None:
+        return None
+    if top <= 0:
+        raise InvalidArgumentValueError('--top must be greater than 0.')
+    return {'$top': top}
+
+
 def iter_swagger_operations(swagger):
     for path, path_item in sorted((swagger or {}).get('paths', {}).items()):
         for method, operation in sorted((path_item or {}).items()):
@@ -406,8 +423,14 @@ def build_operation_summary(path, method, operation, connection, swagger=None, i
     body_parameter = next((parameter for parameter in operation.get('parameters') or []
                            if parameter.get('in') == 'body'), None)
     body_schema = (body_parameter or {}).get('schema')
+    trigger_type = operation.get('x-ms-trigger')
+    notification = operation.get('x-ms-notification') or {}
     summary = {
         'operationId': operation.get('operationId'),
+        'operationType': _operation_type(operation),
+        'triggerType': trigger_type,
+        'triggerHint': operation.get('x-ms-trigger-hint'),
+        'notificationOperationId': notification.get('operationId'),
         'summary': operation.get('summary'),
         'description': operation.get('description'),
         'method': method.upper(),
@@ -422,6 +445,18 @@ def build_operation_summary(path, method, operation, connection, swagger=None, i
         summary['resolvedBodySchema'] = resolved_body_schema
         summary['requestBodyExample'] = build_schema_example(resolved_body_schema) if resolved_body_schema else None
     return summary
+
+
+def operation_matches_type(operation, operation_type=None):
+    if not operation_type:
+        return True
+    if operation_type not in ['action', 'trigger']:
+        raise InvalidArgumentValueError("--operation-type must be 'action' or 'trigger'.")
+    return _operation_type(operation) == operation_type
+
+
+def _operation_type(operation):
+    return 'trigger' if operation.get('x-ms-trigger') else 'action'
 
 
 def resolve_swagger_schema(swagger, schema, seen_refs=None):
@@ -539,34 +574,34 @@ def format_runtime_http_error(error, resource_group_name, gateway_name, connecti
     if status_code in [401, 403]:
         return """Runtime authorization failed for connection '{}'.
 
-The signed-in Azure identity can acquire a runtime token, but the Connector Gateway runtime rejected the call. Grant a connection access policy, then retry:
+The signed-in Azure identity can acquire a runtime token, but the Connector Namespace runtime rejected the call. Grant a connection access policy, then retry:
 
-az connector-gateway connection access-policy create -g {} --gateway-name {} --connection-name {} -n <policy-name> --object-id <object-id> --tenant-id <tenant-id>
+az connector-namespace connection access-policy create -g {} --namespace-name {} --connection-name {} -n <policy-name> --object-id <object-id> --tenant-id <tenant-id>
 
 For your signed-in user, you can usually get these values with:
 az ad signed-in-user show --query id -o tsv
 az account show --query tenantId -o tsv
 
 If the connection itself is not authenticated, run:
-az connector-gateway connection authorize -g {} --gateway-name {} -n {}
+az connector-namespace connection authorize -g {} --namespace-name {} -n {}
 
 Service response: {}""".format(
             connection_name, resource_group_name, gateway_name, connection_name,
             resource_group_name, gateway_name, connection_name, service_message)
 
     if 'audience' in lower_message or 'token exchange' in lower_message or 'tokenexchange' in lower_message:
-        return """Connector Gateway runtime token exchange failed.
+        return """Connector Namespace runtime token exchange failed.
 
-The extension expected the runtime token audience to be '{}'. If this keeps happening, verify the cloud environment and update the connector-gateway extension.
+The extension expected the runtime token audience to be '{}'. If this keeps happening, verify the cloud environment and update the connector-namespace extension.
 
 Service response: {}""".format(RUNTIME_RESOURCE, service_message)
 
-    return "Connector Gateway runtime invocation failed with status {}. Service response: {}".format(
+    return "Connector Namespace runtime invocation failed with status {}. Service response: {}".format(
         status_code or 'unknown', service_message)
 
 
 def format_runtime_cli_error(error):
-    return """Connector Gateway runtime invocation could not acquire or attach an Azure token.
+    return """Connector Namespace runtime invocation could not acquire or attach an Azure token.
 
 Run `az login`, verify the correct tenant and subscription with `az account show`, then retry. If needed, select the subscription with `az account set --subscription <subscription>`.
 

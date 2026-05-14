@@ -2,7 +2,7 @@ import unittest
 
 from azure.cli.core.azclierror import HTTPError, InvalidArgumentValueError, RequiredArgumentMissingError
 
-from azext_connector_gateway.custom import (
+from azext_connector_namespace.custom import (
     build_operation_summary,
     build_runtime_parameters,
     build_runtime_url,
@@ -13,14 +13,16 @@ from azext_connector_gateway.custom import (
     build_gateway_body,
     build_gateway_update_body,
     build_trigger_config_body,
+    build_trigger_config_runs_query,
     extract_first_consent_link,
     find_swagger_operation,
     format_runtime_http_error,
     iter_swagger_operations,
+    operation_matches_type,
     resolve_swagger_schema,
     validate_required_body,
 )
-from azext_connector_gateway._validators import parse_key_value_pairs
+from azext_connector_namespace._validators import parse_key_value_pairs
 
 
 SAMPLE_SWAGGER = {
@@ -52,6 +54,18 @@ SAMPLE_SWAGGER = {
                     {'name': 'connectionId', 'in': 'path', 'required': True, 'type': 'string'},
                     {'name': 'Uri', 'in': 'header', 'required': True, 'type': 'string'},
                     {'name': 'api-version', 'in': 'query', 'required': False, 'type': 'string'},
+                ],
+            },
+        },
+        '/{connectionId}/v4/Mail/OnFlaggedEmail': {
+            'get': {
+                'operationId': 'OnFlaggedEmailV4',
+                'summary': 'When an email is flagged',
+                'x-ms-trigger': 'batch',
+                'x-ms-trigger-hint': 'To see it work now, flag an email in your inbox.',
+                'x-ms-notification': {'operationId': 'CreateGraphOnFlaggedEmailPokeSubscription'},
+                'parameters': [
+                    {'name': 'connectionId', 'in': 'path', 'required': True, 'type': 'string'},
                 ],
             },
         },
@@ -174,9 +188,15 @@ class ConnectorGatewayUnitTests(unittest.TestCase):
         self.assertEqual(properties['notificationDetails']['httpMethod'], 'Post')
         self.assertEqual(properties['parameters'][0], {'name': 'folderId', 'value': 'Documents'})
 
+    def test_build_trigger_config_runs_query(self):
+        self.assertIsNone(build_trigger_config_runs_query())
+        self.assertEqual(build_trigger_config_runs_query(50), {'$top': 50})
+        with self.assertRaises(InvalidArgumentValueError):
+            build_trigger_config_runs_query(0)
+
     def test_iter_swagger_operations(self):
         operations = list(iter_swagger_operations(SAMPLE_SWAGGER))
-        self.assertEqual(len(operations), 3)
+        self.assertEqual(len(operations), 4)
         self.assertIn(('post', 'SendEmailV2'), [(method, operation.get('operationId'))
                                                 for _, method, operation in operations])
 
@@ -209,9 +229,32 @@ class ConnectorGatewayUnitTests(unittest.TestCase):
         connection = {'properties': {'connectionRuntimeUrl': 'https://example.test/apim/office365/connection-id'}}
         summary = build_operation_summary(
             path, method, operation, connection, swagger=SAMPLE_SWAGGER, include_schema_details=True)
+        self.assertEqual(summary['operationType'], 'action')
+        self.assertIsNone(summary['triggerType'])
         self.assertEqual(summary['bodySchema']['$ref'], '#/definitions/ClientSendHtmlMessage')
         self.assertEqual(summary['resolvedBodySchema']['properties']['Subject']['type'], 'string')
         self.assertEqual(summary['requestBodyExample']['To'], 'user@example.com')
+
+    def test_build_operation_summary_includes_trigger_metadata(self):
+        path, method, operation = find_swagger_operation(SAMPLE_SWAGGER, 'OnFlaggedEmailV4')
+        connection = {'properties': {'connectionRuntimeUrl': 'https://example.test/apim/office365/connection-id'}}
+        summary = build_operation_summary(path, method, operation, connection)
+        self.assertEqual(summary['operationType'], 'trigger')
+        self.assertEqual(summary['triggerType'], 'batch')
+        self.assertEqual(summary['triggerHint'], 'To see it work now, flag an email in your inbox.')
+        self.assertEqual(summary['notificationOperationId'], 'CreateGraphOnFlaggedEmailPokeSubscription')
+
+    def test_operation_matches_type(self):
+        _, _, action = find_swagger_operation(SAMPLE_SWAGGER, 'SendEmailV2')
+        _, _, trigger = find_swagger_operation(SAMPLE_SWAGGER, 'OnFlaggedEmailV4')
+        self.assertTrue(operation_matches_type(action))
+        self.assertTrue(operation_matches_type(trigger))
+        self.assertTrue(operation_matches_type(action, 'action'))
+        self.assertFalse(operation_matches_type(action, 'trigger'))
+        self.assertTrue(operation_matches_type(trigger, 'trigger'))
+        self.assertFalse(operation_matches_type(trigger, 'action'))
+        with self.assertRaises(InvalidArgumentValueError):
+            operation_matches_type(action, 'other')
 
     def test_build_operation_summary_omits_schema_details_by_default(self):
         path, method, operation = find_swagger_operation(SAMPLE_SWAGGER, 'SendEmailV2')
@@ -270,6 +313,8 @@ class ConnectorGatewayUnitTests(unittest.TestCase):
             connection_name='office365-test')
         self.assertIn('Runtime authorization failed', message)
         self.assertIn('connection access-policy create', message)
+        self.assertIn('az connector-namespace', message)
+        self.assertIn('--namespace-name gateway', message)
         self.assertIn('--connection-name office365-test', message)
 
     def test_format_runtime_http_error_for_wrong_audience(self):

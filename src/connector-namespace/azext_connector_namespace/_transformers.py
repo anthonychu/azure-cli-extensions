@@ -25,6 +25,10 @@ def transform_trigger_config_table(result):
     return _transform_many(result, _trigger_config_row)
 
 
+def transform_trigger_config_run_table(result):
+    return _transform_many(result, _trigger_config_run_row)
+
+
 def _transform_many(result, row_transformer):
     if isinstance(result, list):
         return [row_transformer(item) for item in result]
@@ -39,7 +43,7 @@ def _gateway_row(item):
         ('Location', item.get('location')),
         ('Identity', identity.get('type')),
         ('State', properties.get('provisioningState')),
-        ('GatewayId', properties.get('connectorGatewayId')),
+        ('NamespaceId', properties.get('connectorGatewayId')),
     ])
 
 
@@ -114,6 +118,17 @@ def _trigger_config_row(item):
         ('Operation', properties.get('operationName')),
         ('State', properties.get('state')),
         ('ProvisioningState', properties.get('provisioningState')),
+    ])
+
+
+def _trigger_config_run_row(item):
+    properties = item.get('properties') or {}
+    return OrderedDict([
+        ('Name', item.get('name')),
+        ('Status', properties.get('status') or properties.get('state')),
+        ('StartTime', properties.get('startTime') or properties.get('startedOn')),
+        ('EndTime', properties.get('endTime') or properties.get('endedOn')),
+        ('Code', properties.get('code')),
     ])
 
 
