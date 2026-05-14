@@ -324,19 +324,34 @@ long-summary: |
 
 helps['connector-namespace trigger-config run'] = """
 type: group
-short-summary: List run history for Connector Namespace trigger configs.
-long-summary: Trigger config runs are the execution history for a trigger config. Use this after creating and enabling a trigger config to inspect recent trigger deliveries.
+short-summary: List and inspect run history for Connector Namespace trigger configs.
+long-summary: Trigger config runs are the execution history for a trigger config. Use list to find recent run IDs, then show a run to inspect trigger outputs and notification delivery details.
 """
 
 helps['connector-namespace trigger-config run list'] = """
 type: command
 short-summary: List run history for a trigger config.
-long-summary: List recent runs from the trigger config runs collection. Use --top to limit the number of returned runs.
+long-summary: |
+  List recent runs from the trigger config runs collection. By default this returns the first service page of recent runs so large histories are not downloaded accidentally.
+  Use --top to return up to a specific number of runs across service pages, or --all to retrieve every page. Pass a run Id to run show for full details.
 examples:
   - name: List recent runs for a trigger config.
     text: az connector-namespace trigger-config run list -g MyResourceGroup --namespace-name MyNamespace --trigger-config-name on-flagged-email -o table
   - name: List the latest 50 runs for a trigger config.
     text: az connector-namespace trigger-config run list -g MyResourceGroup --namespace-name MyNamespace --trigger-config-name on-flagged-email --top 50
+  - name: List all available run pages for a trigger config.
+    text: az connector-namespace trigger-config run list -g MyResourceGroup --namespace-name MyNamespace --trigger-config-name on-flagged-email --all
+"""
+
+helps['connector-namespace trigger-config run show'] = """
+type: command
+short-summary: Show details for a trigger config run.
+long-summary: Show the full trigger run record, including trigger outputs and notification request/response details returned by the service.
+examples:
+  - name: Show a trigger config run.
+    text: az connector-namespace trigger-config run show -g MyResourceGroup --namespace-name MyNamespace --trigger-config-name on-flagged-email --run-id 08584229072168126126977786716CU23
+  - name: Show the notification response status code for a run.
+    text: az connector-namespace trigger-config run show -g MyResourceGroup --namespace-name MyNamespace --trigger-config-name on-flagged-email --run-id 08584229072168126126977786716CU23 --query notification.outputs.statusCode
 """
 
 helps['connector-namespace trigger-config create'] = """

@@ -49,6 +49,9 @@ class ConnectorGatewayClient:
         if query:
             params.update({key: _query_value(value) for key, value in query.items() if value is not None})
         url = '{}{}?{}'.format(self.management_hostname, path, urlencode(params))
+        return self.request_url(method, url, body=body)
+
+    def request_url(self, method, url, body=None):
         headers = ['Content-Type=application/json'] if body is not None else None
         response = send_raw_request(
             self.cli_ctx, method.upper(), url, headers=headers, body=json.dumps(body) if body is not None else None)

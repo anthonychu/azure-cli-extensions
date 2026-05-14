@@ -124,11 +124,13 @@ def _trigger_config_row(item):
 def _trigger_config_run_row(item):
     properties = item.get('properties') or {}
     return OrderedDict([
-        ('Name', item.get('name')),
-        ('Status', properties.get('status') or properties.get('state')),
-        ('StartTime', properties.get('startTime') or properties.get('startedOn')),
-        ('EndTime', properties.get('endTime') or properties.get('endedOn')),
-        ('Code', properties.get('code')),
+        ('Id', item.get('id') or item.get('name')),
+        ('Status', item.get('status') or properties.get('status') or properties.get('state')),
+        ('StartTime', item.get('startTime') or item.get('startedOn') or
+         properties.get('startTime') or properties.get('startedOn')),
+        ('EndTime', item.get('endTime') or item.get('endedOn') or
+         properties.get('endTime') or properties.get('endedOn')),
+        ('Code', item.get('code') or properties.get('code')),
     ])
 
 

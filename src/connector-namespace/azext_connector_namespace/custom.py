@@ -276,12 +276,39 @@ def delete_trigger_config(cmd, resource_group_name, gateway_name, name):
     return _delete_gateway_child(cmd, resource_group_name, gateway_name, 'triggerconfigs', name)
 
 
-def list_trigger_config_runs(cmd, resource_group_name, gateway_name, trigger_config_name, top=None):
+def list_trigger_config_runs(cmd, resource_group_name, gateway_name, trigger_config_name, top=None, all_runs=False):
     client = ConnectorGatewayClient(cmd)
-    query = build_trigger_config_runs_query(top)
+    query = build_trigger_config_runs_query(top, all_runs=all_runs)
     trigger_config_path = client.child_path(resource_group_name, gateway_name, 'triggerConfigs', trigger_config_name)
     result = client.request('GET', '{}/runs'.format(trigger_config_path), query=query)
-    return (result or {}).get('value', [])
+    return collect_paged_values(client, result, limit=top, follow_next=all_runs or top is not None)
+
+
+def show_trigger_config_run(cmd, resource_group_name, gateway_name, trigger_config_name, run_id):
+    client = ConnectorGatewayClient(cmd)
+    trigger_config_path = client.child_path(resource_group_name, gateway_name, 'triggerConfigs', trigger_config_name)
+    return client.request('GET', '{}/runs/{}'.format(trigger_config_path, run_id))
+
+
+def collect_paged_values(client, result, limit=None, follow_next=False):
+    values = []
+    current = result or {}
+    while current:
+        page_values = current.get('value') or []
+        if limit is None:
+            values.extend(page_values)
+        else:
+            remaining = limit - len(values)
+            if remaining <= 0:
+                break
+            values.extend(page_values[:remaining])
+            if len(values) >= limit:
+                break
+        next_link = current.get('nextLink')
+        if not follow_next or not next_link:
+            break
+        current = client.request_url('GET', next_link)
+    return values
 
 
 def build_gateway_body(location, tags=None, identity_type='SystemAssigned'):
@@ -394,7 +421,9 @@ def build_trigger_config_body(available_connector, connection_name, operation_na
     return {'properties': properties}
 
 
-def build_trigger_config_runs_query(top=None):
+def build_trigger_config_runs_query(top=None, all_runs=False):
+    if top is not None and all_runs:
+        raise InvalidArgumentValueError('--top and --all cannot be used together.')
     if top is None:
         return None
     if top <= 0:

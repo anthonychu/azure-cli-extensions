@@ -158,6 +158,12 @@ def load_arguments(self, _):
 
     with self.argument_context('connector-namespace trigger-config run list') as c:
         c.argument('top', options_list=['--top'], type=int, help='Maximum number of trigger runs to return.')
+        c.argument('all_runs', options_list=['--all'], action='store_true',
+                   help='Retrieve all pages of trigger runs. Use carefully for large run histories.')
+
+    with self.argument_context('connector-namespace trigger-config run show') as c:
+        c.argument('run_id', options_list=['--run-id'], metavar='ID', required=True,
+                   help='Trigger run ID from trigger-config run list.')
 
     for scope in [
             'connector-namespace trigger-config create',

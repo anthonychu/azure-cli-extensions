@@ -14,6 +14,7 @@ from azext_connector_namespace.custom import (
     build_gateway_update_body,
     build_trigger_config_body,
     build_trigger_config_runs_query,
+    collect_paged_values,
     extract_first_consent_link,
     find_swagger_operation,
     format_runtime_http_error,
@@ -22,6 +23,7 @@ from azext_connector_namespace.custom import (
     resolve_swagger_schema,
     validate_required_body,
 )
+from azext_connector_namespace._transformers import transform_trigger_config_run_table
 from azext_connector_namespace._validators import parse_key_value_pairs
 
 
@@ -93,6 +95,16 @@ class FakeResponse:
 
     def json(self):
         return self._payload
+
+
+class FakePageClient:
+    def __init__(self, pages):
+        self.pages = pages
+        self.requested_urls = []
+
+    def request_url(self, method, url):
+        self.requested_urls.append((method, url))
+        return self.pages[url]
 
 
 class ConnectorGatewayUnitTests(unittest.TestCase):
@@ -193,6 +205,40 @@ class ConnectorGatewayUnitTests(unittest.TestCase):
         self.assertEqual(build_trigger_config_runs_query(50), {'$top': 50})
         with self.assertRaises(InvalidArgumentValueError):
             build_trigger_config_runs_query(0)
+        with self.assertRaises(InvalidArgumentValueError):
+            build_trigger_config_runs_query(50, all_runs=True)
+
+    def test_collect_paged_values_returns_first_page_by_default(self):
+        first_page = {'value': [{'id': 'run-1'}], 'nextLink': 'https://example.test/next'}
+        client = FakePageClient({'https://example.test/next': {'value': [{'id': 'run-2'}]}})
+        values = collect_paged_values(client, first_page)
+        self.assertEqual(values, [{'id': 'run-1'}])
+        self.assertEqual(client.requested_urls, [])
+
+    def test_collect_paged_values_follows_next_link_to_limit(self):
+        first_page = {'value': [{'id': 'run-1'}], 'nextLink': 'https://example.test/page-2'}
+        client = FakePageClient({
+            'https://example.test/page-2': {
+                'value': [{'id': 'run-2'}, {'id': 'run-3'}, {'id': 'run-4'}],
+                'nextLink': 'https://example.test/page-3',
+            },
+        })
+        values = collect_paged_values(client, first_page, limit=3, follow_next=True)
+        self.assertEqual(values, [{'id': 'run-1'}, {'id': 'run-2'}, {'id': 'run-3'}])
+        self.assertEqual(client.requested_urls, [('GET', 'https://example.test/page-2')])
+
+    def test_transform_trigger_config_run_table_uses_flat_run_fields(self):
+        run = {
+            'id': '08584228874171720428436904333CU11',
+            'status': 'Succeeded',
+            'startTime': '2026-05-14T00:44:28.6300239Z',
+            'endTime': '2026-05-14T00:44:30.8390339Z',
+        }
+        rows = transform_trigger_config_run_table([run])
+        self.assertEqual(rows[0]['Id'], run['id'])
+        self.assertEqual(rows[0]['Status'], 'Succeeded')
+        self.assertEqual(rows[0]['StartTime'], run['startTime'])
+        self.assertEqual(rows[0]['EndTime'], run['endTime'])
 
     def test_iter_swagger_operations(self):
         operations = list(iter_swagger_operations(SAMPLE_SWAGGER))

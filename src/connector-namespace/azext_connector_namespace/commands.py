@@ -58,3 +58,4 @@ def load_command_table(self, _):
 
     with self.command_group('connector-namespace trigger-config run') as g:
         g.custom_command('list', 'list_trigger_config_runs', table_transformer=transform_trigger_config_run_table)
+        g.custom_show_command('show', 'show_trigger_config_run')
